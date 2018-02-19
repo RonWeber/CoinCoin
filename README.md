@@ -1,9 +1,9 @@
-#CoinCoin
-##Because the world needs more cryptocurrencies
+# CoinCoin
+## Because the world needs more cryptocurrencies
 
 This is a python script to make your own useless cryptocurrency!
 
-###Dependencies
+### Dependencies
 
 There's a lot.  These commands should get most of 'em on Ubuntu
 

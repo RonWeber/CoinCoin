@@ -81,7 +81,7 @@ def setChainParams(chainParamsFilename, genesis_parameters, test_genesis_paramet
 def build(name):
     working_directory = "output/" + name.lower()
     subprocess.call(["./autogen.sh"], shell=True, cwd=working_directory)
-    subprocess.call(["./configure"], shell=True, cwd=working_directory)
+    subprocess.call(["./configure", "--with-incompatible-bdb"], shell=True, cwd=working_directory)
     make_jobs = multiprocessing.cpu_count() + 1
     subprocess.call(["make", "-j" + str(make_jobs)], shell=True, cwd=working_directory)
 
@@ -207,7 +207,7 @@ def makeCurrency(name, tla, main_port, test_port, phrase, pubkey_char, coinbase_
 
 def main():
     app = wx.App()
-    top = Frame("Hello World")
+    top = Frame("CoinCoin")
     top.Show()
     app.MainLoop()
     

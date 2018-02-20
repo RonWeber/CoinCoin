@@ -172,23 +172,15 @@ class Frame(wx.Frame):
 
 
 def makeCurrency(name, tla, main_port, test_port, phrase, pubkey_char, coinbase_maturity, reward_pubkey):
-    print name
-    print tla
-    print main_port
-    print test_port
     print "Let's make a Genesis block!"
-    #genesis_parameters  = genesis.main(phrase, reward_pubkey)
-    genesis_parameters = {'nonce': '852641', 'pszTimestamp': u'Clickhole 1/17/2018 Cryptocurrency Crash: The Value Of Bitcoin Has Cratered After Investors Pulled All Of Their Money Out And Put It Into Collecting State Quarters', 'algorithm': 'scrypt', 'time': '1518950770', 'bits': '0x1e0ffff0', 'pubkey': u'04891F6A627BFC5D16FCF4FDFB6D4A63E8E0C818274064D026FA9A99603EA16542F55B85006F0F3545EE1024905AB58E4467CCE731325AD4EB098E6163FCDBD879', 'genesisHash': '607ab61689cafa5be357f7098ca0223812a1e2de089303b82179e83a8a36eabb', 'merkle_hash': 'aaf90043a6183aa5d52a4b066c41cc83086ab699d012a5e19daaec2303e8fced'}
-
+    genesis_parameters  = genesis.main(phrase, reward_pubkey)
     
     print "FOUND IT!"
     print genesis_parameters
 
     print "We have to make a test genesis block, too? :("
     #Potential bug: If we somehow get the genesis hash in <1 second, the test block will be identical.
-    #test_genesis_parameters = genesis.main(phrase, reward_pubkey)
-    test_genesis_parameters = {'nonce': '852641', 'pszTimestamp': u'Clickhole 1/17/2018 Cryptocurrency Crash: The Value Of Bitcoin Has Cratered After Investors Pulled All Of Their Money Out And Put It Into Collecting State Quarters', 'algorithm': 'scrypt', 'time': '1518950770', 'bits': '0x1e0ffff0', 'pubkey': u'04891F6A627BFC5D16FCF4FDFB6D4A63E8E0C818274064D026FA9A99603EA16542F55B85006F0F3545EE1024905AB58E4467CCE731325AD4EB098E6163FCDBD879', 'genesisHash': '607ab61689cafa5be357f7098ca0223812a1e2de089303b82179e83a8a36eabb', 'merkle_hash': 'aaf90043a6183aa5d52a4b066c41cc83086ab699d012a5e19daaec2303e8fced'}
-
+    test_genesis_parameters = genesis.main(phrase, reward_pubkey)
     
     print "FOUND IT!"
     print test_genesis_parameters
@@ -201,9 +193,6 @@ def makeCurrency(name, tla, main_port, test_port, phrase, pubkey_char, coinbase_
     setChainParams(os.path.join("output", name.lower(), "src", "chainparams.cpp"), genesis_parameters, test_genesis_parameters, main_port, test_port, phrase, pubkey_char, coinbase_maturity, reward_pubkey)
 
     print name + " is ready!"
-    #print "We're going to go ahead and build it for you, too."
-    #build()
-    #print "Built complete!"
 
 def main():
     app = wx.App()

@@ -6,14 +6,15 @@ from construct import *
 class Options(object):
   pass
 
-def main(timestamp, pubkey):
+#genesisBlockValue is in full coins
+def main(timestamp, pubkey, genesisBlockValue):
   options = Options()
   options.time = int(time.time())
   options.timestamp = timestamp
   options.nonce = 0
   options.algorithm = "scrypt"
   options.pubkey = pubkey
-  options.value = 5000000000
+  options.value = genesisBlockValue * 100000000
   options.bits = 0x1e0ffff0
   
   algorithm = get_algorithm(options)

@@ -43,11 +43,11 @@ def renameFilesAndReplaceLitecoin(name, tla, main_port, test_port, phrase, pubke
                 entireFile = entireFile.replace("LITECOIN", name.upper())
                 entireFile = entireFile.replace("LTC", tla)
             except UnicodeDecodeError: #We gotta ignore binary files.
-                print "Ignoring file " + os.path.join(path, newName)
+                pass
             with open(os.path.join(path, newName), 'w') as f:
                 f.write(entireFile)
 
-def setChainParams(chainParamsFilename, genesis_parameters, test_genesis_parameters, main_port, test_port, phrase, pubkey_char, coinbase_maturity, reward_pubkey ):
+def setChainParams(chainParamsFilename, genesis_parameters, test_genesis_parameters, main_port, test_port, phrase, pubkey_char, coinbase_maturity, reward_pubkey, coinsInGenesisBlock):
     with open(chainParamsFilename) as f:
         chainParams = f.read()
     chainParams = chainParams.decode("utf-8")
@@ -74,21 +74,37 @@ def setChainParams(chainParamsFilename, genesis_parameters, test_genesis_paramet
     chainParams = chainParams.replace("710000", "0") 
     chainParams = chainParams.replace("918684", "0")
     chainParams = chainParams.replace("811879", "0")
+    #Genesis reward ($)
+    chainParams = chainParams.replace("50 * COIN", str(coinsInGenesisBlock) + " * COIN")
     chainParams = chainParams.encode("utf-8")
     with open(chainParamsFilename, "w") as f:
         f.write(chainParams)
 
+def setBlockValue(validationFileName, coinsPerBlock):
+    with open(validationFileName) as f:
+        validation = f.read()
+    validation = validation.replace("50 * COIN", str(coinsPerBlock) + " * COIN")
+    with open(validationFileName, "w") as f:
+        f.write(validation)
+
+def setMaxMoney(amountFileName, max_money):
+    with open(amountFileName) as f:
+        validation = f.read()
+    validation = validation.replace("84000000", str(max_money))
+    with open(amountFileName, "w") as f:
+        f.write(validation)    
+        
 def build(name):
     working_directory = "output/" + name.lower()
     subprocess.call(["./autogen.sh"], shell=True, cwd=working_directory)
     subprocess.call(["./configure", "--with-incompatible-bdb"], shell=False, cwd=working_directory)
     make_jobs = multiprocessing.cpu_count() + 1
-    subprocess.call(["make", "-j" + str(make_jobs)], shell=True, cwd=working_directory)
+    subprocess.call(["make", "-j" + str(make_jobs)], shell=False, cwd=working_directory)
 
 class Frame(wx.Frame):
     def __init__(self, title):
         self.textFields = {}
-        wx.Frame.__init__(self, None, title=title, pos=(150,150), size=(700,700))
+        wx.Frame.__init__(self, None, title=title, pos=(150,150), size=(700,900))
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         menuBar = wx.MenuBar()
@@ -121,6 +137,14 @@ class Frame(wx.Frame):
         self.addControls(panel, box, "pubkey_char", "First letter of wallet address (in base 58)", "24")
         self.addControls(panel, box, "coinbase_maturity", "Coinbase maturity:", "100")
         self.addControls(panel, box, "reward_pubkey", "Reward Public Key", "04891F6A627BFC5D16FCF4FDFB6D4A63E8E0C818274064D026FA9A99603EA16542F55B85006F0F3545EE1024905AB58E4467CCE731325AD4EB098E6163FCDBD879")
+        self.addControls(panel, box, "coins_per_block", "Coins per block", "50")
+
+        sliderSizer = wx.BoxSizer(wx.HORIZONTAL)
+        sliderLabel = wx.StaticText(panel, -1, "GREED SLIDER (Premine amount in blocks):")
+        sliderSizer.Add(sliderLabel, 0, wx.ALL | wx.CENTER, 5)
+        self.greedSlider = wx.Slider(panel, -1, 1, 1, 100000, style=wx.SL_MIN_MAX_LABELS | wx.SL_VALUE_LABEL)
+        sliderSizer.Add(self.greedSlider, 1, wx.ALL | wx.CENTER | wx.EXPAND, 5)
+        box.Add(sliderSizer, 0, wx.ALL | wx.EXPAND)
 
         goButton = wx.Button(panel, -1, "MAKE CRYPTOCURRENCY")
         goButton.Bind(wx.EVT_BUTTON, self.goButtonClicked)
@@ -156,7 +180,10 @@ class Frame(wx.Frame):
                                         self.textFields["phrase"].GetValue(),
                                         self.textFields["pubkey_char"].GetValue(),
                                         self.textFields["coinbase_maturity"].GetValue(),
-                                        self.textFields["reward_pubkey"].GetValue(),))
+                                        self.textFields["reward_pubkey"].GetValue(),
+                                        int(self.textFields["coins_per_block"].GetValue()),
+                                        self.greedSlider.GetValue(),
+                                  ))
         thread.start()
 
     def buildButtonClicked(self, event):
@@ -171,16 +198,23 @@ class Frame(wx.Frame):
         self.Destroy()
 
 
-def makeCurrency(name, tla, main_port, test_port, phrase, pubkey_char, coinbase_maturity, reward_pubkey):
+def makeCurrency(name, tla, main_port, test_port, phrase, pubkey_char, coinbase_maturity, reward_pubkey, coins_per_block, premine_in_blocks):
+    print "There are " + str(coins_per_block) + " coins per block, meaning " + str(coins_per_block * 2 * 840000 - coins_per_block) + " total coins from mining."
+    print "You will get " + str(coins_per_block * premine_in_blocks) + " coins."
+    premine_in_coins = premine_in_blocks * coins_per_block
+
+    total_money = (coins_per_block * 2 * 840000 - coins_per_block) + (coins_per_block * premine_in_blocks)
+    print "That makes " + str(total_money) + " coins in total."
+    
     print "Let's make a Genesis block!"
-    genesis_parameters  = genesis.main(phrase, reward_pubkey)
+    genesis_parameters  = genesis.main(phrase, reward_pubkey, premine_in_coins)
     
     print "FOUND IT!"
     print genesis_parameters
 
     print "We have to make a test genesis block, too? :("
     #Potential bug: If we somehow get the genesis hash in <1 second, the test block will be identical.
-    test_genesis_parameters = genesis.main(phrase, reward_pubkey)
+    test_genesis_parameters = genesis.main(phrase, reward_pubkey, premine_in_coins)
     
     print "FOUND IT!"
     print test_genesis_parameters
@@ -190,8 +224,10 @@ def makeCurrency(name, tla, main_port, test_port, phrase, pubkey_char, coinbase_
     print "Renaming files..."
     renameFilesAndReplaceLitecoin(name, tla, main_port, test_port, phrase, pubkey_char, coinbase_maturity, reward_pubkey)
     print "Setting parameters..."
-    setChainParams(os.path.join("output", name.lower(), "src", "chainparams.cpp"), genesis_parameters, test_genesis_parameters, main_port, test_port, phrase, pubkey_char, coinbase_maturity, reward_pubkey)
-
+    setChainParams(os.path.join("output", name.lower(), "src", "chainparams.cpp"), genesis_parameters, test_genesis_parameters, main_port, test_port, phrase, pubkey_char, coinbase_maturity, reward_pubkey, premine_in_coins)
+    setBlockValue(os.path.join("output", name.lower(), "src", "validation.cpp"), coins_per_block)
+    setMaxMoney(os.path.join("output", name.lower(), "src", "amount.h"), total_money)
+    
     print name + " is ready!"
 
 def main():
